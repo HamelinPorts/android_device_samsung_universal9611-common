@@ -2,3 +2,9 @@ allow vold efs_file:dir r_file_perms;
 allow vold mnt_vendor_file:dir r_file_perms;
 
 allow vold sysfs_block_writable:file rw_file_perms;
+
+# vold's volume scanner stats every block device on /dev/block to discover
+# size/encryption status. cache and efs are managed by other domains; allow
+# the read-only stat without granting any data access.
+allow vold cache_block_device:blk_file getattr;
+allow vold efs_block_device:blk_file getattr;

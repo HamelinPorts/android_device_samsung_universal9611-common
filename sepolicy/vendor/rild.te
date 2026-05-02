@@ -1,5 +1,7 @@
 # rild.te
 allow rild log_vendor_data_file:dir create_dir_perms;
+allow rild log_vendor_data_file:file create_file_perms;
+allow rild log_vendor_data_file:file setattr;
 allow rild imei_efs_file:file w_file_perms;
 allow rild imei_efs_file:file setattr;
 

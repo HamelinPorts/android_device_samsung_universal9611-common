@@ -1,0 +1,5 @@
+# Stock vendor thermal HAL probes android.frameworks.stats.IStats on init.
+# On Lineage we don't expose fwk_stats to vendor; the HAL handles the
+# probe failure gracefully (no thermal regression). Silence the audit
+# noise without granting access.
+dontaudit hal_thermal_default fwk_stats_service:service_manager find;

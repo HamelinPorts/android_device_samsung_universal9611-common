@@ -150,6 +150,12 @@ on post-fs-data
     mkdir /dev/freezer/thaw
     write /dev/freezer/frozen/freezer.state FROZEN
     write /dev/freezer/thaw/freezer.state THAWED
+
+# `on fs` runs restorecon /data before /data is decrypted, so files
+# created by older sepolicy keep stale labels (e.g. csdiag_*.dat under
+# /data/vendor/log labelled vendor_data_file instead of
+# log_vendor_data_file). Re-run after /data is mounted.
+    restorecon_recursive /data/vendor/log
 	
 # Samsung Pay
 #   mkdir /efs/pfw_data 0760 vendor_spay vendor_spay
