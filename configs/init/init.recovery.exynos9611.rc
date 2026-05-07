@@ -2,3 +2,18 @@ on init
     write /proc/sys/kernel/hung_task_timeout_secs 0
 
     setprop sys.usb.configfs 1
+    # 6.12 rebase: Android init's auto-detect of /sys/class/udc/ doesn't
+    # populate sys.usb.controller in time for the recovery's USB gadget
+    # binding chain (init.rc rules on sys.usb.config=adb &&
+    # sys.usb.ffs.ready=1 && sys.usb.configfs=1 write
+    # ${sys.usb.controller} to /config/usb_gadget/g1/UDC).  The 4.14
+    # BSP set this via Samsung's sec_usb-glue.  Hardcode to the dwc3
+    # MMIO base for Exynos 9610/9611 so adbd can bind on first boot.
+    setprop sys.usb.controller 13200000.dwc3
+    # Also force sys.usb.config=adb here so adbd starts and writes the
+    # ffs descriptors (which sets sys.usb.ffs.ready=1).  In 4.14 this
+    # was set via persist.sys.usb.config + ueventd glue; in our 6.12
+    # bring-up that chain isn't firing yet, so the gadget binding rule
+    # in /system/etc/init/hw/init.rc never gets all three required
+    # properties at once.
+    setprop sys.usb.config adb
