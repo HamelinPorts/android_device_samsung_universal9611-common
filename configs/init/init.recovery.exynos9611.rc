@@ -21,18 +21,11 @@ on init
 #
 # Setting it in `on boot` (which runs after `late-init`/`fs`/`post-fs`)
 # ensures /dev/usb-ffs/adb and /config/usb_gadget/g1 are both ready
-# when adbd starts.  sys.usb.controller is set here too so it's stamped
-# before the chained UDC-write rule reads ${sys.usb.controller}.
-# Android init's auto-detect of /sys/class/udc/* doesn't populate
-# sys.usb.controller in time on 6.12 (the 4.14 BSP set this via
-# Samsung's sec_usb-glue, not forward-ported); hardcode to the dwc3
-# MMIO base for Exynos 9610/9611.
+# when adbd starts.  Android init's main-loop SetUsbController() call
+# (system/core/init/init.cpp) populates sys.usb.controller from the
+# first entry in /sys/class/udc once the dwc3 UDC has registered, so
+# we don't need to hardcode it.
 on boot
-    write /dev/kmsg "a51-rc: on boot ENTER, sys.usb.config=${sys.usb.config} sys.usb.configfs=${sys.usb.configfs} sys.usb.ffs.ready=${sys.usb.ffs.ready}"
-    write /dev/kmsg "a51-rc: ls /sys/class/udc — see kernel log for ueventd output"
-    copy /sys/class/udc /dev/kmsg
-    setprop sys.usb.controller 13200000.dwc3
-    write /dev/kmsg "a51-rc: setprop sys.usb.controller 13200000.dwc3 done"
     setprop sys.usb.config adb
     write /dev/kmsg "a51-rc: setprop sys.usb.config adb done"
 
