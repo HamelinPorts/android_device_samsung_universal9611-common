@@ -1,19 +1,44 @@
 on init
     write /proc/sys/kernel/hung_task_timeout_secs 0
 
+    # Set sys.usb.configfs=1 during `init` so the
+    # `on fs && property:sys.usb.configfs=1` block in
+    # /system/etc/init/hw/init.rc (which mounts configfs at /config and
+    # creates /config/usb_gadget/g1/...) is reached during the fs stage.
     setprop sys.usb.configfs 1
-    # 6.12 rebase: Android init's auto-detect of /sys/class/udc/ doesn't
-    # populate sys.usb.controller in time for the recovery's USB gadget
-    # binding chain (init.rc rules on sys.usb.config=adb &&
-    # sys.usb.ffs.ready=1 && sys.usb.configfs=1 write
-    # ${sys.usb.controller} to /config/usb_gadget/g1/UDC).  The 4.14
-    # BSP set this via Samsung's sec_usb-glue.  Hardcode to the dwc3
-    # MMIO base for Exynos 9610/9611 so adbd can bind on first boot.
+
+# 6.12 rebase USB-gadget binding: defer setprop sys.usb.config=adb
+# until AFTER `on fs` has run.  Reason:
+#   - `on init` runs BEFORE `on fs`, where /dev/usb-ffs/adb gets mounted
+#     and /config/usb_gadget/g1 is created.
+#   - `on property:sys.usb.config=adb` immediately fires `start adbd`,
+#     which fails silently (cannot open /dev/usb-ffs/adb/ep0 because
+#     functionfs isn't mounted yet) -- so sys.usb.ffs.ready never gets
+#     set, the UDC binding rule
+#     (sys.usb.config=adb && sys.usb.ffs.ready=1 && sys.usb.configfs=1)
+#     never matches, /config/usb_gadget/g1/UDC stays empty, the dwc3
+#     gadget never enumerates, and the host sees nothing on USB.
+#
+# Setting it in `on boot` (which runs after `late-init`/`fs`/`post-fs`)
+# ensures /dev/usb-ffs/adb and /config/usb_gadget/g1 are both ready
+# when adbd starts.  sys.usb.controller is set here too so it's stamped
+# before the chained UDC-write rule reads ${sys.usb.controller}.
+# Android init's auto-detect of /sys/class/udc/* doesn't populate
+# sys.usb.controller in time on 6.12 (the 4.14 BSP set this via
+# Samsung's sec_usb-glue, not forward-ported); hardcode to the dwc3
+# MMIO base for Exynos 9610/9611.
+on boot
+    write /dev/kmsg "a51-rc: on boot ENTER, sys.usb.config=${sys.usb.config} sys.usb.configfs=${sys.usb.configfs} sys.usb.ffs.ready=${sys.usb.ffs.ready}"
+    write /dev/kmsg "a51-rc: ls /sys/class/udc — see kernel log for ueventd output"
+    copy /sys/class/udc /dev/kmsg
     setprop sys.usb.controller 13200000.dwc3
-    # Also force sys.usb.config=adb here so adbd starts and writes the
-    # ffs descriptors (which sets sys.usb.ffs.ready=1).  In 4.14 this
-    # was set via persist.sys.usb.config + ueventd glue; in our 6.12
-    # bring-up that chain isn't firing yet, so the gadget binding rule
-    # in /system/etc/init/hw/init.rc never gets all three required
-    # properties at once.
+    write /dev/kmsg "a51-rc: setprop sys.usb.controller 13200000.dwc3 done"
     setprop sys.usb.config adb
+    write /dev/kmsg "a51-rc: setprop sys.usb.config adb done"
+
+# After the UDC binding rule has had a chance to fire, log final state
+on property:sys.usb.state=adb
+    write /dev/kmsg "a51-rc: sys.usb.state=adb (gadget bound, host should see device)"
+
+on property:sys.usb.ffs.ready=1
+    write /dev/kmsg "a51-rc: sys.usb.ffs.ready=1 (adbd opened FFS endpoints)"
