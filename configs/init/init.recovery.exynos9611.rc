@@ -39,6 +39,20 @@ on boot
 # After the UDC binding rule has had a chance to fire, log final state
 on property:sys.usb.state=adb
     write /dev/kmsg "a51-rc: sys.usb.state=adb (gadget bound, host should see device)"
+    # Phase 8c diagnostic: dwc3 doesn't print gadget pullup activity even
+    # with dyndbg=+p, so surface post-bind state via /sys to confirm
+    # whether configfs's UDC write actually stuck and what the controller
+    # is doing.
+    write /dev/kmsg "a51-rc: /config/usb_gadget/g1/UDC ="
+    copy /config/usb_gadget/g1/UDC /dev/kmsg
+    write /dev/kmsg "a51-rc: /sys/class/udc/13200000.dwc3/state ="
+    copy /sys/class/udc/13200000.dwc3/state /dev/kmsg
+    write /dev/kmsg "a51-rc: /sys/class/udc/13200000.dwc3/current_speed ="
+    copy /sys/class/udc/13200000.dwc3/current_speed /dev/kmsg
+    write /dev/kmsg "a51-rc: /sys/class/udc/13200000.dwc3/soft_connect ="
+    copy /sys/class/udc/13200000.dwc3/soft_connect /dev/kmsg
+    write /dev/kmsg "a51-rc: /sys/class/udc/13200000.dwc3/function ="
+    copy /sys/class/udc/13200000.dwc3/function /dev/kmsg
 
 on property:sys.usb.ffs.ready=1
     write /dev/kmsg "a51-rc: sys.usb.ffs.ready=1 (adbd opened FFS endpoints)"
