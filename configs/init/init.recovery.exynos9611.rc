@@ -6,32 +6,4 @@ on init
     # /system/etc/init/hw/init.rc (which mounts configfs at /config and
     # creates /config/usb_gadget/g1/...) is reached during the fs stage.
     setprop sys.usb.configfs 1
-
-# 6.12 rebase USB-gadget binding: defer setprop sys.usb.config=adb
-# until AFTER `on fs` has run.  Reason:
-#   - `on init` runs BEFORE `on fs`, where /dev/usb-ffs/adb gets mounted
-#     and /config/usb_gadget/g1 is created.
-#   - `on property:sys.usb.config=adb` immediately fires `start adbd`,
-#     which fails silently (cannot open /dev/usb-ffs/adb/ep0 because
-#     functionfs isn't mounted yet) -- so sys.usb.ffs.ready never gets
-#     set, the UDC binding rule
-#     (sys.usb.config=adb && sys.usb.ffs.ready=1 && sys.usb.configfs=1)
-#     never matches, /config/usb_gadget/g1/UDC stays empty, the dwc3
-#     gadget never enumerates, and the host sees nothing on USB.
-#
-# Setting it in `on boot` (which runs after `late-init`/`fs`/`post-fs`)
-# ensures /dev/usb-ffs/adb and /config/usb_gadget/g1 are both ready
-# when adbd starts.  Android init's main-loop SetUsbController() call
-# (system/core/init/init.cpp) populates sys.usb.controller from the
-# first entry in /sys/class/udc once the dwc3 UDC has registered, so
-# we don't need to hardcode it.
-on boot
     setprop sys.usb.config adb
-    write /dev/kmsg "a51-rc: setprop sys.usb.config adb done"
-
-# After the UDC binding rule has had a chance to fire, log final state
-on property:sys.usb.state=adb
-    write /dev/kmsg "a51-rc: sys.usb.state=adb (gadget bound, host should see device)"
-
-on property:sys.usb.ffs.ready=1
-    write /dev/kmsg "a51-rc: sys.usb.ffs.ready=1 (adbd opened FFS endpoints)"
