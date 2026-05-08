@@ -1,9 +1,12 @@
 on init
     write /proc/sys/kernel/hung_task_timeout_secs 0
 
-    # Set sys.usb.configfs=1 during `init` so the
-    # `on fs && property:sys.usb.configfs=1` block in
-    # /system/etc/init/hw/init.rc (which mounts configfs at /config and
-    # creates /config/usb_gadget/g1/...) is reached during the fs stage.
+    # Recovery doesn't mount /data, so init.usb.rc's
+    #   on boot && property:persist.sys.usb.config=*
+    #     setprop sys.usb.config ${persist.sys.usb.config}
+    # never fires.  Without sys.usb.config set, none of the
+    # init.usb.configfs.rc property triggers run, the UDC stays
+    # unbound, and the host sees no device.  Stamp both properties
+    # here so recovery boots with adb available.
     setprop sys.usb.configfs 1
     setprop sys.usb.config adb
