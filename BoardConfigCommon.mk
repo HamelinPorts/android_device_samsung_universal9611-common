@@ -108,6 +108,25 @@ TARGET_BOOTLOADER_BOARD_NAME := exynos9611
 TARGET_SOC := exynos9611
 include hardware/samsung_slsi-linaro/config/BoardConfig9611.mk
 
+# Bridge the make-side TARGET_SOC_BASE (set to "exynos9610" by
+# hardware/samsung_slsi-linaro/config/BoardConfig9611.mk above) to
+# Soong's `exynos_hwc` namespace.  hardware/samsung_slsi-linaro/graphics/
+# base/{hwc3,libhwc2.1}/Android.bp use
+# `soong_config_variable("exynos_hwc", "target_soc_base")` to pick which
+# platform/<soc>/ sub-tree to compile into the HWComposer3 HAL.  Without
+# this bridge, the soong variable is unset and the HAL falls back to the
+# `essi` default platform — whose ExynosHWCModule.h references
+# `/sys/devices/platform/19f00000.decon_0/vsync` (a different SoC
+# family), so the open() fails and the HAL emits a hotplug error to
+# SurfaceFlinger.  SurfaceFlinger then SIGSEGVs in
+# `Scheduler::dispatchHotplugError(int)+12` during configureLocked(),
+# crash-loops, never registers SurfaceFlingerAIDL, and bootanim hangs
+# until the `a51_auto_recovery_secs=600` watchdog fires.  exynos9610's
+# ExynosHWCModule.h has the correct address `148b0000.decon_f/vsync`
+# (matching our DT decon_f node + the dpu20 kernel driver) and
+# MAX_DECON_WIN=4.  Root-caused 2026-05-21.
+$(call soong_config_set,exynos_hwc,target_soc_base,$(TARGET_SOC_BASE))
+
 ## Properties
 TARGET_PRODUCT_PROP += $(COMMON_PATH)/product.prop
 TARGET_VENDOR_PROP += $(COMMON_PATH)/vendor.prop
