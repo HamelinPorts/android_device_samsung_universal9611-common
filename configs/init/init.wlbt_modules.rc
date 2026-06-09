@@ -1,0 +1,17 @@
+# Load the SLSI SCSC "Maxwell" WLBT WLAN modules early in boot.
+#
+# On the 6.12 kernel CFG80211 is forced =m by the GKI base, so the WLAN stack
+# (cfg80211 + scsc_wifilogger + scsc_wlan) ships as modules. They must be loaded
+# BEFORE wificond (class main) and the wifi HAL (class hal) start: wificond
+# resolves the nl80211 generic-netlink family once at startup, and if nl80211
+# isn't registered yet it caches an invalid family id and every later
+# GET_WIPHY times out (Wi-Fi never enables). post-fs runs after /vendor is
+# mounted and before class_start main/hal, so it's the right place.
+#
+# Load order follows the module dependencies:
+#   rfkill <- cfg80211 <- {scsc_wifilogger, scsc_wlan}
+on post-fs
+    insmod /vendor/lib/modules/rfkill.ko
+    insmod /vendor/lib/modules/cfg80211.ko
+    insmod /vendor/lib/modules/scsc_wifilogger.ko
+    insmod /vendor/lib/modules/scsc_wlan.ko

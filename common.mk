@@ -141,6 +141,7 @@ PRODUCT_COPY_FILES += \
     $(COMMON_PATH)/configs/init/init.recovery.exynos9611.rc:$(TARGET_COPY_OUT_RECOVERY)/root/init.recovery.exynos9611.rc \
     $(COMMON_PATH)/configs/init/init.samsung.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.samsung.rc \
     $(COMMON_PATH)/configs/init/init.stune.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.stune.rc \
+    $(COMMON_PATH)/configs/init/init.wlbt_modules.rc:$(TARGET_COPY_OUT_VENDOR)/etc/init/init.wlbt_modules.rc \
     $(COMMON_PATH)/configs/init/ueventd.rc:$(TARGET_COPY_OUT_VENDOR)/etc/ueventd.rc
 
 # libinit
