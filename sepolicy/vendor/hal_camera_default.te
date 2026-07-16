@@ -5,6 +5,14 @@ binder_call(system_server, hal_camera_default);
 
 allow hal_camera_default hal_graphics_mapper_hwservice:hwservice_manager find;
 
+# Client of the stable-AIDL graphics allocator (android.hardware.graphics.allocator.IAllocator/default).
+# Grants `find` on hal_graphics_allocator_service:service_manager plus the client-side
+# binder_call to the allocator server, fixing the "avc: denied { find } ...
+# IAllocator/default ... scontext=hal_camera_default ... tclass=service_manager" denial
+# seen during still-capture buffer allocation. Uses the macro (not a raw allow) so the
+# hal_attribute_service neverallow on this service is satisfied.
+hal_client_domain(hal_camera_default, hal_graphics_allocator)
+
 allow hal_camera_default hal_graphics_composer_default:fd use;
 
 r_dir_file(hal_camera_default, sysfs_camera);
