@@ -452,6 +452,18 @@ on boot
     write /dev/cpuset/system-background/cpus 0-7
     write /dev/cpuset/restricted/cpus 0-3
 
+    # Camera provider single-core pin (interim symptom-suppression for the
+    # provider cross-thread lifetime race). CPU4 = big A73 cluster head,
+    # avoiding CPU6 where the DDK softirq is pinned.
+    mkdir /dev/cpuset/camera-1core
+    write /dev/cpuset/camera-1core/cpus 4
+    copy /dev/cpuset/mems /dev/cpuset/camera-1core/mems
+    chown cameraserver cameraserver /dev/cpuset/camera-1core
+    chown cameraserver cameraserver /dev/cpuset/camera-1core/tasks
+    chown cameraserver cameraserver /dev/cpuset/camera-1core/cgroup.procs
+    chmod 0664 /dev/cpuset/camera-1core/tasks
+    chmod 0664 /dev/cpuset/camera-1core/cgroup.procs
+
     setprop vendor.powerhal.init 1
 
     # PAS Setting
